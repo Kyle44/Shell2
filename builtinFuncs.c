@@ -15,7 +15,7 @@
 #define TOKEN_DELIM " "
 
 
-int exit(char** args){
+int exitFunc(char** args){
         if(strcmp(args[0], "exit") == 0){ // if 1st arg = "exit"
                 if(args[2] != NULL){ // if more than one arg after exit
                         printf("ERROR: Not a valid exit code\n");
@@ -35,3 +35,22 @@ int exit(char** args){
         }
 }
 
+int chdirFunc(char** args){
+        return 0;
+}
+
+int cdFunc(char** args){
+        return chdirFunc(args);
+}
+
+int getenvFunc(char** args){
+        return 0;
+}
+
+int setenvFunc(char** args){
+        return 0;
+}
+
+int echoFunc(char** args){
+        return 0;
+}

@@ -11,18 +11,21 @@ int execute(char** args){
                 return 1;  // Nothing entered, so return to command prompt
         }
 
-        char* builtinCommands[] = {"exit", "chdir", "cd", "getenv", "setebv", "echo"};
-        int (*builtinFunctions[]) (char **) = {&exit, &chdir, &cd, &getenv, &setenv, &echo};
-        int numCommands = sizeof(builtinCommands) / sizeof(char*);
+        char* builtinCommands[] = {"exit", "chdir", "cd", "getenv", "setenv", "echo"}; // all of the possible commands
+        int (*builtinFunctions[]) (char **) = {&exitFunc, &chdirFunc, &cdFunc, &getenvFunc, &setenvFunc, &echoFunc}; // array of functions
+        int numCommands = sizeof(builtinCommands) / sizeof(char*); // how many commands
 
+        int i = 0;
+        while(i < numCommands) {
+		    if (strcmp(args[0], builtinCommands[i]) == 0) {
+      			return (*builtinFunctions[i])(args);
+    		}
+    		i++;
+  		}
 
-        if(exit(args) == 1){
-                return 1;
-        }
 
         return launch(args);
 }
-
 
 int launch(char** args){
 	pid_t pid, wpid;
@@ -30,8 +33,8 @@ int launch(char** args){
 	
 	pid = fork();
 	if(pid == 0){   // Child Process
-		execv(args[0], args);
-		// If execv returns, it failed	
+		execvp(args[0], args);
+		// If execvp returns, it failed	
 		perror("Child Process Error");
 		exit(EXIT_FAILURE);
 	}
