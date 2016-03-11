@@ -78,36 +78,7 @@ int getenvFunc(char** args){
 }
 
 int setenvFunc(char** args){
-    int currentBufferSize = BUFFER_SIZE;
-    char* str = (char*) malloc(sizeof(char*) * currentBufferSize);
-    str = "";
-    int i = 1;
-    while(args[i] != NULL){
-        printf("%s\n", i);
-        if(strlen(str) > currentBufferSize/2){ // make sure that there's enough memory for str
-            currentBufferSize += BUFFER_SIZE;
-            realloc(str, currentBufferSize);
-        }
-        strcat(str, args[i]);
-    }    
-
-    printf("%s\n", str);
-
-
-
-    args[1] = unescape(str, stderr);
-    printf("%s arg1 \n", args[1]);
-    char* key;
-    char* value;
-    int j = 0;
-
-    while(args[1][j] != '='){ // get key
-        key += args[1][j];
-        j++;
-    }
-
-    free(str);
-//    setenv(args[1]);
+        
     return 1;
 }
 
