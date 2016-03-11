@@ -27,12 +27,22 @@
     POSSIBILITY OF SUCH DAMAGE.
 */
 
+typedef int bool;
+#define true 1
+#define false 0
+
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <ctype.h>
-
+#include <sys/wait.h>
+#include <unistd.h>
+#include <sys/types.h>
+#define STR_BUFFER_SIZE 30
+#define BUFFER_SIZE 1024
+#define TOKEN_BUFFER_SIZE 64
+#define TOKEN_DELIM " "
 #include "utils.h"
 
 size_t count_spaces(const char *str) {
