@@ -6,27 +6,14 @@
 #include "utils.c"
 
 
-int getNumArgs(char** args){ // get total number of arguments
-    int i = 0;
-    while(args[i] != NULL){
-        i++;
-    }
-    return i;
-}
 
 int exitFunc(char** args){
+    int numArgs = getNumArgs(args);
 
-    int i = 1; // start at 1 to count args after exit 
-    while(args[i]!=NULL){
-        i++; // count total arguments
-    }
-    i--; // one exta i, so need to subtract
-
-    if(i>1){ // if more than one arg after exit
+    if(numArgs>2){ // if more than two args, where one is exit
             printf("ERROR: Too many arguments\n");
             return 1;
     }
-
 
     if(args[1] == NULL || atoi(args[1]) == 0){ // exit is same as exit(0)
             exit(0);
@@ -41,26 +28,27 @@ int exitFunc(char** args){
 }
 
 int chdirFunc(char** args){
-    args[1] = unescape(args[1], stderr); // unescaped version
-    if (args[1] == NULL) {
-            if(getenv("HOME")!=NULL){
-                    chdir(getenv("HOME"));       
-            }
-            else{
-                   fprintf(stderr, "ERROR: expected argument for changing directories\n");
-           }
+//  printf("Go here -> %s\n", args[1]);
+    if (args[1] == NULL || args[1][0] == '\n') {
+        if(getenv("HOME")!=NULL){
+                chdir(getenv("HOME"));       
+        }
+        else{
+               fprintf(stderr, "ERROR: expected argument for changing directories\n");
+       }
     }
     else {
+    	args[1] = unescape(args[1], stderr);
             if (chdir(args[1]) != 0) {
-                    perror("ERROR");
-            }
-    }
-    free(args[1]);
+           		perror("ERROR");
+          	}
+    	free(args[1]);
+    }	
     return 1;
 }
 
 int cdFunc(char** args){
-        return chdirFunc(args);
+    return chdirFunc(args);
 }
 
 int getenvFunc(char** args){
@@ -167,3 +155,4 @@ int echoFunc(char** args){
     }
     return 1;
 }
+
