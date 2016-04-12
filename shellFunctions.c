@@ -5,32 +5,40 @@
 
 #include "builtinFuncs.c"
 
-
 int execute(char** args){
-        if(args[0] == NULL){
-                return 1;  // Nothing entered, so return to command prompt
-        }
+	int numArgs = getNumArgs(args);
+	if(args[numArgs - 1][0] == '\n'){
+		args[numArgs - 1] = NULL;
+	}
+//	printArray(args);
+    if(args[0] == NULL || args[0][0] == '#'){
+		return 1;  // Nothing entered or a comment, so return to command prompt
+    }
+    char* builtinCommands[] = {"exit", "chdir", "cd", "getenv", "setenv", "echo"}; // all of the possible commands
+    int (*builtinFunctions[]) (char **) = {&exitFunc, &chdirFunc, &cdFunc, &getenvFunc, &setenvFunc, &echoFunc}; // array of functions
+    int numCommands = sizeof(builtinCommands) / sizeof(char*); // how many commands
+    int i = 0;
+    while(i < numCommands) {
 
-        char* builtinCommands[] = {"exit", "chdir", "cd", "getenv", "setenv", "echo"}; // all of the possible commands
-        int (*builtinFunctions[]) (char **) = {&exitFunc, &chdirFunc, &cdFunc, &getenvFunc, &setenvFunc, &echoFunc}; // array of functions
-        int numCommands = sizeof(builtinCommands) / sizeof(char*); // how many commands
+	    if (strcmp(builtinCommands[i], args[0]) == 0) {
+//	    	printf("true\n");
+  			return (*builtinFunctions[i])(args);
+		}
+		else{
+//			printf("false\n");
+		}
+		i++;
+	}
 
-        int i = 0;
-        while(i < numCommands) {
-		    if (strcmp(args[0], builtinCommands[i]) == 0) {
-      			return (*builtinFunctions[i])(args);
-    		}
-    		i++;
-  		}
-
-
-        return launch(args);
+    return launch(args);
 }
 
 int launch(char** args){
+//	printArray(args);
+//	printNumArgs(args);
 	pid_t pid, wpid;
 	int status;
-	
+
 	pid = fork();
 	if(pid == 0){   // Child Process
 		execvp(args[0], args);
@@ -48,9 +56,90 @@ int launch(char** args){
 			wpid = waitpid(pid, &status, WUNTRACED);  // Wait for process's status to change
 		} while(!WIFEXITED(status) && !WIFSIGNALED(status));
 	}
-	
 	return 1;
 }	
+
+
+
+char** splitLine(char* line){
+	int currentTokenBufferSize = TOKEN_BUFFER_SIZE;
+	int position = 0;
+	char** tokens = malloc(currentTokenBufferSize * sizeof(char*));  // Allocate for each token
+	char* token;
+	char* endOfToken; // after function, this is the second argument in the token
+	int endPosition; // using first_unquoted_space 
+	char firstArg[256];
+
+	if(!tokens){
+		fprintf(stderr, "Token Allocation Error\n");
+		exit(EXIT_FAILURE);
+	}
+
+	token = line;
+	//printString(token);
+	endPosition = first_unquoted_space(line); // first argument end position.  Can also be -1
+	if(endPosition > 256){ // Argument too big to be valid arg
+		fprintf(stderr, "Invalid Argument\n");
+		exit(EXIT_FAILURE);
+	}
+
+	if(endPosition != -1 && token[endPosition + 1] != '\0'){ // if at least 2 args
+		memset(firstArg, '\0', sizeof(firstArg)); // nullify firstArg
+		strncpy(firstArg, token, endPosition); // copy first argument to firstArg, (dest, src+index, endIndex - beginIndex)
+		token = unescape(firstArg, stderr);
+
+		tokens[position] = token;
+		position++;
+
+		if(position >= currentTokenBufferSize){
+			currentTokenBufferSize += TOKEN_BUFFER_SIZE;
+			tokens = realloc(tokens, currentTokenBufferSize * sizeof(char*));
+			if(!tokens){
+				fprintf(stderr, "Token Reallocation Error\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+		token = line;
+		
+		strcpy(token, &token[endPosition + 1]); // make token the second argument now, endPosition + 1 -> after first space
+		token = unescape(token, stderr);
+		tokens[position] = token;
+		position++;
+
+
+		if(position >= currentTokenBufferSize){
+			currentTokenBufferSize += TOKEN_BUFFER_SIZE;
+			tokens = realloc(tokens, currentTokenBufferSize * sizeof(char*));
+			if(!tokens){
+				fprintf(stderr, "Token Reallocation Error\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		tokens[position] = NULL;
+//		printf("tokens = %s, %s\n", tokens[0], tokens[1]);
+		return tokens;
+	}
+
+	else{ // 1 arg
+		token = unescape(token, stderr);
+		tokens[position] = token;
+		position++;
+
+		if(position >= currentTokenBufferSize){
+			currentTokenBufferSize += TOKEN_BUFFER_SIZE;
+			tokens = realloc(tokens, currentTokenBufferSize * sizeof(char*));
+			if(!tokens){
+				fprintf(stderr, "Token Reallocation Error\n");
+				exit(EXIT_FAILURE);
+			}
+		}
+
+		tokens[position] = NULL;
+//		printf("tokens = %s\n", tokens[0]);
+		return tokens;
+	}
+}
 
 char* readLine(){
 	int currentBufferSize = BUFFER_SIZE;
@@ -87,33 +176,27 @@ char* readLine(){
 	}
 }
 
-char** splitLine(char* line){
-	int currentTokenBufferSize = TOKEN_BUFFER_SIZE;
-	int position = 0;
-	char** tokens = malloc(currentTokenBufferSize * sizeof(char*));  // Allocate for each token
-	char* token;
-	char* saveptr;
 
-	if(!tokens){
-		fprintf(stderr, "Token Allocation Error\n");
-		exit(EXIT_FAILURE);
-	}
+char* readLineScript(FILE* file){
+	int currentBufferSize = BUFFER_SIZE;
+	char* buffer = malloc(sizeof(char) * currentBufferSize);
 
-	token = strtok_r(line, TOKEN_DELIM, &saveptr);  // Splits up the tokens by spaces and other inputs
-	while (token != NULL){
-		tokens[position] = token;
-		position++;
-	
-		if(position >= currentTokenBufferSize){
-			currentTokenBufferSize += TOKEN_BUFFER_SIZE;
-			tokens = realloc(tokens, currentTokenBufferSize * sizeof(char*));
-			if(!tokens){
-				fprintf(stderr, "Token Reallocation Error\n");
+	if(fgets(buffer, currentBufferSize, file) != NULL) { // while still lines in file
+		if(sizeof(buffer) >= currentBufferSize){ // make sure buffer is big enough
+			currentBufferSize += BUFFER_SIZE;
+			buffer = realloc(buffer, currentBufferSize);
+			if(!buffer){
+				fprintf(stderr, "Reallocation Error\n");
 				exit(EXIT_FAILURE);
 			}
 		}
-		token = strtok_r(NULL, TOKEN_DELIM, &saveptr);
+		unescape(buffer, stderr);
+//		buffer[strlen(buffer) - 1] = '\0';
+		printf("%s", buffer); // print the line
+		return buffer;
 	}
-	tokens[position] = NULL;
-	return tokens;
+
+	else{
+		exit(0);
+	}
 }
