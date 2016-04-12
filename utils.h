@@ -58,3 +58,4 @@ extern int first_unquoted_space(const char *str);
 #endif
 
 #endif /* !UTILS_H */
+
